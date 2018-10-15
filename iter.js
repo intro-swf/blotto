@@ -9,7 +9,12 @@ define(function(){
   
   const PROP_SELF = {get:function(){return this}, configurable:true};
   
-  String[_ITERTYPE] = Symbol.for('iter:string');
+  const _T_STRING = String[_ITERTYPE] = Symbol.for('iter:string');
+  const _T_BLOBPART = Symbol.or('iter:blobPart');
+  
+  function* iterSingleton(v) {
+    yield v;
+  }
   
   function WrappedAsyncIterator(wrapMe) {
     this.next = wrapMe.next.bind(wrapMe);
@@ -97,6 +102,9 @@ define(function(){
   };
   
   iter.makeBlob = function(v) {
+    if (_T_BLOBPART in v) {
+      v = v[_T_BLOBPART];
+    }
     if (_ITER in v) {
       return new Blob([...v]);
     }
