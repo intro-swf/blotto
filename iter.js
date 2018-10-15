@@ -8,13 +8,23 @@ define(function(){
   const _TYPESPECIFIED = Symbol('typeSpecified');
   
   const PROP_SELF = {get:function(){return this}, configurable:true};
+  const PROP_SINGLETON_ITER = {
+    get: function() {
+      const v = this;
+      return function*() {
+        yield v;
+      };
+    },
+    configurable: true,
+  };
   
   const _T_STRING = String[_ITERTYPE] = Symbol.for('iter:string');
-  const _T_BLOBPART = Symbol.or('iter:blobPart');
+  const _T_BLOBPART = Symbol.for('iter:blobPart');
   
-  function* iterSingleton(v) {
-    yield v;
-  }
+  Object.defineProperty(String.prototype, _T_BLOBPART, PROP_SINGLETON_ITER);
+  Object.defineProperty(Blob.prototype, _T_BLOBPART, PROP_SINGLETON_ITER);
+  Object.defineProperty(ArrayBuffer.prototype, _T_BLOBPART, PROP_SINGLETON_ITER);
+  Object.defineProperty(Object.getPrototypeOf(Uint8Array.prototype), _T_BLOBPART, PROP_SINGLETON_ITER);
   
   function WrappedAsyncIterator(wrapMe) {
     this.next = wrapMe.next.bind(wrapMe);
@@ -81,6 +91,34 @@ define(function(){
   
   iter.WrappedAsyncIterator = WrappedAsyncIterator;
   
+  iter.makeArray = function(v, elementType) {
+    if (elementType) {
+      elementType = getElementTypeSymbol(elementType);
+      if (elementType in v) {
+        v = v[elementType];
+      }
+      else if (_TYPESPECIFIED in v) {
+        throw new Error('type not found');
+      }
+    }
+    if (_ITER in v) {
+      return [...v];
+    }
+    if (_ASYNCITER in v) {
+      return (async function() {
+        const list = [];
+        const asyncIterator = v[_ASYNCITER]();
+        for (;;) {
+          var iteration = await asyncIterator.next();
+          if (iteration.done) break;
+          list.push(iteration.value);
+        }
+        return list;
+      })();
+    }
+    throw new Error('value not iterable');
+  };
+  
   iter.makeString = function(v) {
     if (typeof v === 'string') return v;
     if (_ITER in v) {
@@ -102,25 +140,13 @@ define(function(){
   };
   
   iter.makeBlob = function(v) {
-    if (_T_BLOBPART in v) {
-      v = v[_T_BLOBPART];
+    v = iter.makeArray(v, _T_BLOBPART);
+    if (v instanceof Promise) {
+      return v.then(function(v) {
+        return new Blob(v);
+      });
     }
-    if (_ITER in v) {
-      return new Blob([...v]);
-    }
-    if (_ASYNCITER in v) {
-      return (async function() {
-        const list = [];
-        const asyncIterator = v[_ASYNCITER]();
-        for (;;) {
-          var iteration = await asyncIterator.next();
-          if (iteration.done) break;
-          list.push(iteration.value);
-        }
-        return new Blob(list);
-      })();
-    }
-    throw new Error('blob source not found');
+    return new Blob(v);
   };
   
   return iter;
