@@ -149,6 +149,87 @@ define(function(){
     return new Blob(v);
   };
   
+  function AsyncQueueIterable(elementType) {
+    if (elementType) {
+      elementType = getElementTypeSymbol(elementType);
+      this[elementType] = this;
+      this[_TYPESPECIFIED] = true;
+    }
+  }
+  AsyncQueueIterable.prototype = {
+    nextGet: null,
+    lastGet: null,
+    nextSet: null,
+    lastSet: null,
+    next: function() {
+      const nextGet = this.nextGet;
+      if (nextGet) {
+        if (nextGet.nextGet) {
+          this.nextGet = nextGet.nextGet;
+        }
+        else {
+          delete this.nextGet;
+          delete this.lastGet;
+        }
+        return nextGet;
+      }
+      const self = this;
+      return new Promise(function(resolve, reject) {
+        resolve.reject = reject;
+        if (self.nextSet) {
+          self.lastSet.nextSet = resolve;
+          self.lastSet = resolve;
+        }
+        else {
+          self.nextSet = self.lastSet = resolve;
+        }
+      });
+    },
+    append: function(el) {
+      const nextSet = this.nextSet;
+      if (nextSet) {
+        this.nextSet = nextSet.nextSet;
+        nextSet({value:el, done:false});
+      }
+      else {
+        const promise = Promise.resolve({value:el, done:false});
+        const nextGet = this.nextGet;
+        if (nextGet) {
+          this.lastGet.nextGet = promise;
+          this.lastGet = promise;
+        }
+        else {
+          this.nextGet = this.lastGet = promise;
+        }
+      }
+      return this;
+    },
+    complete: function() {
+      const nextSet = this.nextSet;
+      if (nextSet) {
+        this.nextSet = nextSet.nextSet;
+        nextSet({done:true});
+      }
+      else {
+        const promise = Promise.resolve({done:true});
+        promise.nextGet = promise;
+        const nextGet = this.nextGet;
+        if (nextGet) {
+          this.lastGet.nextGet = promise;
+          this.lastGet = promise;
+        }
+        else {
+          this.nextGet = this.lastGet = promise;
+        }
+      }
+      return this;
+    },
+  };
+  AsyncQueueIterable.prototype[_ASYNCITER] = function() {
+    return this;
+  };
+  iter.AsyncQueue = AsyncQueueIterable;
+  
   return iter;
 
 });
