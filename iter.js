@@ -224,6 +224,26 @@ define(function(){
       }
       return this;
     },
+    appendError: function(message) {
+      const nextSet = this.nextSet;
+      if (nextSet) {
+        this.nextSet = nextSet.nextSet;
+        nextSet.reject(message);
+      }
+      else {
+        const promise = Promise.reject(message);
+        promise.nextGet = promise;
+        const nextGet = this.nextGet;
+        if (nextGet) {
+          this.lastGet.nextGet = promise;
+          this.lastGet = promise;
+        }
+        else {
+          this.nextGet = this.lastGet = promise;
+        }
+      }
+      return this;
+    },
   };
   AsyncQueueIterable.prototype[_ASYNCITER] = function() {
     return this;
