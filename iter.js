@@ -250,6 +250,44 @@ define(function(){
   };
   iter.AsyncQueue = AsyncQueueIterable;
   
+  iter.map = function map(src, mapFunc) {
+    if (_ITER in src) {
+      return function*() {
+        for (const el of src) yield mapFunc(el);
+      };
+    }
+    else if (_ASYNCITER in src) {
+      const asyncIter = src[_ASYNCITER]();
+      return {
+        next: async function() {
+          const step = asyncIter.next();
+          return step.done ? step : {done:false, value:mapFunc(step.value)};
+        };
+      }
+    }
+    else throw new Error('iteration not found');
+  };
+  
+  iter.filter = function filter(src, filterFunc) {
+    if (_ITER in src) {
+      return function*() {
+        for (const el of src) if (filterFunc(el)) yield el;
+      };
+    }
+    else if (_ASYNCITER in src) {
+      const asyncIter = src[_ASYNCITER]();
+      return {
+        next: async function() {
+          for (;;) {
+            const step = await asyncIter.next();
+            if (step.done || filterFunc(step.value)) return value;
+          }
+        };
+      }
+    }
+    else throw new Error('iteration not found');
+  };
+  
   return iter;
 
 });
