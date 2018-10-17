@@ -36,6 +36,17 @@ define(function(){
     isAsync: true,
   };
   
+  function SelfIterable(next) {
+    this.next = next;
+  }
+  SelfIterable.prototype[_ITER] = function(){ return this; };
+  
+  function AsyncSelfIterable(next) {
+    this.next = next;
+  }
+  AsyncSelfIterable.prototype.isAsync = true;
+  AsyncSelfIterable.prototype[_ASYNCITER] = function(){ return this; };
+  
   function getElementTypeSymbol(elementType) {
     switch (typeof elementType) {
       case 'string':
@@ -294,7 +305,21 @@ define(function(){
   
   iter.reduce = function reduce(src, reduceFunc, initialValue) {
     if (_ITER in src) {
-      return Array.prototype.reduce.apply([...src], Array.slice.apply(arguments, 1));
+      if (arguments.length > 2) {
+        var currentValue = initialValue;
+        for (var element of src) {
+          currentValue = reduceFunc(src, currentValue);
+        }
+        return currentValue;
+      }
+      src = src[_ITER]();
+      var step = src.next();
+      if (step.done) throw new Error('reduce of empty iterator with no initial value');
+      var currentValue = step.value;
+      while (!(step = src.next()).done) {
+        currentValue = reduceFunc(currentValue, step.value);
+      }
+      return currentValue;
     }
     if (_ASYNCITER in src) {
       src = src[_ASYNCITER]();
