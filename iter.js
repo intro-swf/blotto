@@ -258,12 +258,14 @@ define(function(){
     }
     else if (_ASYNCITER in src) {
       const asyncIter = src[_ASYNCITER]();
-      return {
+      const v = {
         next: async function() {
           const step = asyncIter.next();
           return step.done ? step : {done:false, value:mapFunc(step.value)};
         };
       }
+      v[_ASYNCITER] = v;
+      return v;
     }
     else throw new Error('iteration not found');
   };
@@ -276,7 +278,7 @@ define(function(){
     }
     else if (_ASYNCITER in src) {
       const asyncIter = src[_ASYNCITER]();
-      return {
+      const v = {
         next: async function() {
           for (;;) {
             const step = await asyncIter.next();
@@ -284,8 +286,38 @@ define(function(){
           }
         };
       }
+      v[_ASYNCITER] = v;
+      return v;
     }
     else throw new Error('iteration not found');
+  };
+  
+  iter.reduce = function reduce(src, reduceFunc, initialValue) {
+    if (_ITER in src) {
+      return Array.prototype.reduce.apply([...src], Array.slice.apply(arguments, 1));
+    }
+    if (_ASYNCITER in src) {
+      src = src[_ASYNCITER]();
+      if (arguments.length === 2) {
+        return (async function() {
+          var step = await src.next();
+          if (step.done) throw new Error('reduce of empty iterator with no initial value');
+          var currentValue = step.value;
+          for (step = await src.next(); !step.done; step = await src.next()) {
+            currentValue = reduceFunc(currentValue, step.value);
+          }
+          return currentValue;
+        })();
+      }
+      return (async function() {
+        var currentValue = initialValue;
+        for (var step = await src.next(); !step.done; step = await src.next()) {
+          currentValue = reduceFunc(currentValue, step.value);
+        }
+        return currentValue;
+      })();
+    }
+    throw new Error('not a valid iterable');
   };
   
   return iter;
