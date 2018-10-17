@@ -345,6 +345,39 @@ define(function(){
     throw new Error('not a valid iterable');
   };
   
+  iter.record = function recordedIterable(v) {
+    if (_ITER in v) {
+      return [...v];
+    }
+    if (_ASYNCITER in v) {
+      v = v[_ASYNCITER]();
+      var values = [];
+      var iterable = {values:values};
+      iterable[_ASYNCITER] = function() {
+        var iterator = {};
+        var i = 0;
+        iterator.next = function() {
+          if (i < values.length) {
+            return Promise.resolve({value:values[i++], done:false});
+          }
+          if (values.complete) return Promise.resolve({done:true});
+          var step = await v.next();
+          if (step.done) {
+            values.complete = true;
+          }
+          else {
+            values.push(step.value);
+            i++;
+          }
+          return step;
+        };
+        return iterator;
+      };
+      return iterable;
+    }
+    throw new Error('not a valid iterable');
+  };
+  
   return iter;
 
 });
