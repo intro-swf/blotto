@@ -345,9 +345,31 @@ define(function(){
     throw new Error('not a valid iterable');
   };
   
-  iter.record = function recordedIterable(v) {
+  iter.record = function record(v) {
     if (_ITER in v) {
-      return [...v];
+      var values = {};
+      var iterable = {values:values};
+      iterable[_ITER] = function() {
+        var iterator = {};
+        var i = 0;
+        iterator.next = function() {
+          if (i < values.length) {
+            return {value:values[i++], done:false};
+          }
+          if (values.complete) return {done:true};
+          var step = v.next();
+          if (step.done) {
+            values.complete = true;
+          }
+          else {
+            values.push(step.value);
+            i++;
+          }
+          return step;
+        };
+        return iterator;
+      };
+      return iterable;
     }
     if (_ASYNCITER in v) {
       v = v[_ASYNCITER]();
@@ -356,7 +378,7 @@ define(function(){
       iterable[_ASYNCITER] = function() {
         var iterator = {};
         var i = 0;
-        iterator.next = function() {
+        iterator.next = async function() {
           if (i < values.length) {
             return Promise.resolve({value:values[i++], done:false});
           }
