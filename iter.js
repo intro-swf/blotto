@@ -20,6 +20,7 @@ define(function(){
   
   const _T_STRING = String[_ITERTYPE] = Symbol.for('iter:string');
   const _T_BLOBPART = Symbol.for('iter:blobPart');
+  const _T_U8ARRAY = Uint8Array[_ITERTYPE] = Symbol.for('iter:u8array');
   
   Object.defineProperty(String.prototype, _T_BLOBPART, PROP_SINGLETON_ITER);
   Object.defineProperty(Blob.prototype, _T_BLOBPART, PROP_SINGLETON_ITER);
@@ -398,6 +399,49 @@ define(function(){
       return iterable;
     }
     throw new Error('not a valid iterable');
+  };
+  
+  const UTF8 = new TextEncoder('utf-8');
+  
+  iter.pipeBlobPartsToByteArrays = function pipeBlobPartsToByteArrays(iterable) {
+    if (_T_BLOBPART in iterable) iterable = iterable[_T_BLOBPART];
+    var pipedIterable = {};
+    pipedIterable[_T_U8ARRAY] = pipedIterable;
+    pipedIterable[_TYPESPECIFIED] = true;
+    const symbol = (_ITER in pipedIterable) ? _ITER
+                  : (_ASYNCITER in pipedIterable) ? _ASYNCITER
+                  : (throw new Error('invalid iterable'));
+    pipedIterable[_ASYNCITER] = function() {
+      var pipedIterator = pipedIterable[symbol]();
+      return {
+        next: async function next() {
+          var step = await pipedIterator.next();
+          if (step.done || step.value instanceof Uint8Array) return step;
+          if (ArrayBuffer.isView(step.value)) {
+            return {done:false, value:new Uint8Array(step.value.buffer, step.value.byteLength)};
+          }
+          if (step.value instanceof ArrayBuffer) {
+            return {done:false, value:new Uint8Array(step.value)};
+          }
+          if (typeof step.value === 'string') {
+            return {done:false, value:UTF8.encode(step.value)};
+          }
+          if (step.value instanceof Blob) {
+            return new Promise(function(resolve, reject) {
+              const fr = new FileReader;
+              fr.onload = function() {
+                resolve({done:false, value:new Uint8Array(this.result)});
+              };
+              fr.onerror = function() {
+                reject(this.error);
+              };
+              fr.readAsArrayBuffer(step.value);
+            });
+          }
+          throw new Error('not a valid blob part');
+        },
+      };
+    };
   };
   
   return iter;
