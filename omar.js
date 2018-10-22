@@ -182,7 +182,6 @@ define(function() {
         }
         continue;
       }
-      
     }
     switch (pattern.length) {
       case 0: return OmarSequence.EMPTY;
@@ -195,6 +194,8 @@ define(function() {
     escape: escape,
     Object: OmarObject,
     Literal: OmarLiteral,
+    Sequence: OmarSequence,
+    Repeat: OmarRepeat,
   });
 
 });
