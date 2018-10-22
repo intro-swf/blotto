@@ -116,52 +116,6 @@ define(function() {
   });
   OmarChoice.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
   
-  function OmarChar() {
-    throw new Error('OmarChar cannot be constructed directly');
-  }
-  OmarChar.prototype = Object.create(OmarObject.prototype, {
-    maxLength: {
-      value: 1,
-    },
-    minLength: {
-      value: 1,
-    },
-    fixedLength: {
-      value: 1,
-    },
-  });
-  
-  function OmarCharSet(chars, negated) {
-    if (typeof chars !== 'string') {
-      throw new Error('invalid char set');
-    }
-    this.chars = chars;
-  }
-  OmarCharSet.prototype = Obect.create(OmarChar.prototype, {
-    toString: {
-      value: function() {
-        return '[' + escapeSet(this.chars) + ']';
-      },
-    },
-  });
-  
-  function OmarLiteral(literal) {
-    if (typeof literal !== 'string') throw new Error('literal must be string');
-    if (literal.length === 0) throw new Error('literal must be at least one character');
-    this.literal = literal;
-    Object.freeze(this);
-  }
-  OmarLiteral.prototype = Object.create(OmarObject.prototype, {
-    minLength: {get:function(){ return this.literal.length; }},
-    maxLength: {get:function(){ return this.literal.length; }},
-    fixedLength: {get:function(){ return this.literal.length; }},
-    toString: {
-      value: function() {
-        return escape(this.literal);
-      },
-    },
-  });
-  
   function OmarRepeat(omo, minCount, maxCount, greedy) {
     if (!(omo instanceof OmarObject)) throw new Error('not a valid omar object');
     if (isNaN(minCount) || minCount < 0 || minCount !== Math.floor(minCount) || !isFinite(minCount)) {
@@ -215,6 +169,145 @@ define(function() {
             break;
         }
         return this.greedy ? str+mod : str+mod+'?';
+      },
+    },
+  });
+  
+  function OmarCharSet(chars, negated) {
+    if (typeof chars !== 'string') {
+      throw new Error('invalid char set');
+    }
+    this.chars = chars;
+    this.negated = !!negated;
+  }
+  OmarCharSet.prototype = Obect.create(OmarObject.prototype, {
+    minLength: {
+      value: 1,
+    },
+    maxLength: {
+      value: 1,
+    },
+    fixedLength: {
+      value: 1,
+    },
+    toString: {
+      value: function() {
+        return (this.negated?'[^':'[') + this.chars + ']';
+      },
+    },
+  });
+  
+  OmarCharSet.DOT = Object.create(OmarCharSet.prototype, {
+    negated: {
+      value: true,
+    },
+    chars: {
+      value: '\r\n\u2028\u2029',
+    },
+    toString: {
+      value: function() {
+        return '.';
+      },
+    },
+  });
+  
+  OmarCharSet.DECIMAL_DIGIT = Object.create(OmarCharSet.prototype, {
+    negated: {
+      value: false,
+    },
+    chars: {
+      value: '0-9',
+    },
+    toString: {
+      value: function() {
+        return '\\d';
+      },
+    },
+  });
+  
+  OmarCharSet.DECIMAL_DIGIT.NEGATED = Object.create(OmarCharSet.prototype, {
+    negated: {
+      value: true,
+    },
+    chars: {
+      value: '0-9',
+    },
+    toString: {
+      value: function() {
+        return '\\D';
+      },
+    },
+  });
+  
+  OmarCharSet.ALPHANUMERIC = Object.create(OmarCharSet.prototype, {
+    negated: {
+      value: false,
+    },
+    chars: {
+      value: 'A-Za-z0-9_',
+    },
+    toString: {
+      value: function() {
+        return '\\w';
+      },
+    },
+  });
+  
+  OmarCharSet.ALPHANUMERIC.NEGATED = Object.create(OmarCharSet.prototype, {
+    negated: {
+      value: true,
+    },
+    chars: {
+      value: 'A-Za-z0-9_',
+    },
+    toString: {
+      value: function() {
+        return '\\W';
+      },
+    },
+  });
+  
+  OmarCharSet.WHITESPACE = Object.create(OmarCharSet.prototype, {
+    negated: {
+      value: false,
+    },
+    chars: {
+      value: ' \f\n\r\t\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff',
+    },
+    toString: {
+      value: function() {
+        return '\\s';
+      },
+    },
+  });
+  
+  OmarCharSet.WHITESPACE.NEGATED = Object.create(OmarCharSet.prototype, {
+    negated: {
+      value: true,
+    },
+    chars: {
+      value: ' \f\n\r\t\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff',
+    },
+    toString: {
+      value: function() {
+        return '\\S';
+      },
+    },
+  });
+  
+  function OmarLiteral(literal) {
+    if (typeof literal !== 'string') throw new Error('literal must be string');
+    if (literal.length === 0) throw new Error('literal must be at least one character');
+    this.literal = literal;
+    Object.freeze(this);
+  }
+  OmarLiteral.prototype = Object.create(OmarObject.prototype, {
+    minLength: {get:function(){ return this.literal.length; }},
+    maxLength: {get:function(){ return this.literal.length; }},
+    fixedLength: {get:function(){ return this.literal.length; }},
+    toString: {
+      value: function() {
+        return escape(this.literal);
       },
     },
   });
