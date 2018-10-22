@@ -87,6 +87,33 @@ define(function() {
     if (this.length < 2) throw new Error('at least 2 choices');
     Object.freeze(this);
   }
+  OmarChoice.prototype = Object.create(OmarObject.prototype, {
+    minLength: {
+      get: function() {
+        var minLength = Infinity;
+        for (var i = 0; i < this.length; i++) {
+          minLength = Math.min(minLength, this[i].minLength);
+          if (minLength === 0) break;
+        }
+        return minLength;
+      },
+    },
+    maxLength: {
+      get: function() {
+        var maxLength = 0;
+        for (var i = 0; i < this.length; i++) {
+          maxLength = Math.max(maxLength, this[i].maxLength);
+          if (!isFinite(maxLength)) break;
+        }
+        return maxLength;
+      },
+    },
+    toString: {
+      value: function() {
+        return '(?:' + Array.prototype.join.call(this, '|') + ')';
+      },
+    },
+  });
   OmarChoice.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
   
   function OmarChar() {
@@ -101,20 +128,6 @@ define(function() {
     },
     fixedLength: {
       value: 1,
-    },
-  });
-  
-  function OmarLiteralChar(char) {
-    if (typeof char !== 'string' || char.length !== 1) {
-      throw new Error('invalid char');
-    }
-    this.char = char;
-  }
-  OmarLiteralChar.prototype = Object.create(OmarChar.prototype, {
-    toString: {
-      value: function() {
-        return escape(this.value);
-      },
     },
   });
   
