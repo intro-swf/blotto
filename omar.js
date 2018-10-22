@@ -132,7 +132,7 @@ define(function() {
     /\\(?:[^cxu]|c[a-zA-Z]|x[0-9a-fA-F]{2}|u(?:[0-9a-fA-F]{4}|\{[0-9a-fA-F]{4,5}\}))/,
   ].map(function(rx){ return rx.source; }).join('|'), 'g');
   
-  const PAT_REP = /[\?\*\+\{/;
+  const PAT_REP = /[\?\*\+\{]/;
   
   function omar(pattern) {
     if (pattern instanceof OmarObject) {
