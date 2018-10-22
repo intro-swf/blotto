@@ -115,6 +115,36 @@ define(function() {
         return this.repeatObject.maxLength * this.maxCount;
       },
     },
+    toString: {
+      value: function() {
+        var str = this.repeatObject.toString();
+        str = '(?:' + str + ')'; // TODO: only do this when necessary
+        var mod;
+        switch (this.minCount) {
+          case 0:
+            switch (this.maxCount) {
+              case 1: mod = '?'; break;
+              case Infinity: mod = '*'; break;
+              default:
+                mod = '{0,' + this.maxCount + '}';
+                break;
+            }
+            break;
+          case 1:
+            if (this.maxCount === Infinity) {
+              mod = '+';
+            }
+            else {
+              mod = '{1,' + this.maxCount + '}';
+            }
+            break;
+          default:
+            mod = '{'+this.minCount+','+this.maxCount+'}';
+            break;
+        }
+        return this.greedy ? str+mod : str+mod+'?';
+      },
+    },
   });
   
   const PAT_PART = new RegExp([
@@ -175,10 +205,11 @@ define(function() {
               break;
             default:
               parts.push(new OmarRepeat(finalChar, +rep[2], isNaN(rep[3]) ? Infinity : +rep[3], rep[0].slice(-1) !== '?');
+              break;
           }
         }
         else {
-          parts.push(new OmarLiteral(match[1]));
+          parts.push(new OmarLiteral(match[0]));
         }
         continue;
       }
