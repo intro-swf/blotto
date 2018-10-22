@@ -5,10 +5,15 @@ define(function() {
   /* OMAR: Object Model API for Regex */
 
   function escape(str) {
-    return str.replace(/[\.\*\+\?\^\$\{\}\(\)\|\[\]\\]/g, '\\$&');
+    return str.replace(/[\.\*\+\?\^\$\{\}\(\)\|\[\]\\]/g, "\\$&");
+  }
+
+  function escapeSet(str) {
+    return str.replace(/[\[\]\^\-\\]/g, "\\$&");
   }
   
   function OmarObject() {
+    throw new Error('OmarObject cannot be directly constructed');
   }
   OmarObject.prototype = Object.create(Object.prototype, {
     minLength: {
@@ -40,25 +45,9 @@ define(function() {
     },
   });
   
-  function OmarLiteral(literal) {
-    if (typeof literal !== 'string') throw new Error('literal must be string');
-    if (literal.length === 0) throw new Error('literal must be at least one character');
-    this.literal = literal;
-    Object.freeze(this);
-  }
-  OmarLiteral.prototype = Object.create(OmarObject.prototype, {
-    minLength: {get:function(){ return this.literal.length; }},
-    maxLength: {get:function(){ return this.literal.length; }},
-    fixedLength: {get:function(){ return this.literal.length; }},
-    toString: {
-      value: function() {
-        return escape(this.literal);
-      },
-    },
-  });
-  
   function OmarSequence(iter) {
     for (var obj of iter) {
+      if (!(obj instanceof OmarObject)) throw new Error('invalid element');
       this[this.length++] = obj;
     }
     Object.freeze(this);
@@ -89,6 +78,76 @@ define(function() {
   });
   OmarSequence.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
   OmarSequence.EMPTY = new OmarSequence([]);
+  
+  function OmarChoice(iter) {
+    for (var obj of iter) {
+      if (!(obj instanceof OmarObject)) throw new Error('invalid choice');
+      this[this.length++] = obj;
+    }
+    if (this.length < 2) throw new Error('at least 2 choices');
+    Object.freeze(this);
+  }
+  OmarChoice.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
+  
+  function OmarChar() {
+    throw new Error('OmarChar cannot be constructed directly');
+  }
+  OmarChar.prototype = Object.create(OmarObject.prototype, {
+    maxLength: {
+      value: 1,
+    },
+    minLength: {
+      value: 1,
+    },
+    fixedLength: {
+      value: 1,
+    },
+  });
+  
+  function OmarLiteralChar(char) {
+    if (typeof char !== 'string' || char.length !== 1) {
+      throw new Error('invalid char');
+    }
+    this.char = char;
+  }
+  OmarLiteralChar.prototype = Object.create(OmarChar.prototype, {
+    toString: {
+      value: function() {
+        return escape(this.value);
+      },
+    },
+  });
+  
+  function OmarCharSet(chars, negated) {
+    if (typeof chars !== 'string') {
+      throw new Error('invalid char set');
+    }
+    this.chars = chars;
+  }
+  OmarCharSet.prototype = Obect.create(OmarChar.prototype, {
+    toString: {
+      value: function() {
+        return '[' + escapeSet(this.chars) + ']';
+      },
+    },
+  });
+  
+  function OmarLiteral(literal) {
+    if (typeof literal !== 'string') throw new Error('literal must be string');
+    if (literal.length === 0) throw new Error('literal must be at least one character');
+    this.literal = literal;
+    Object.freeze(this);
+  }
+  OmarLiteral.prototype = Object.create(OmarObject.prototype, {
+    minLength: {get:function(){ return this.literal.length; }},
+    maxLength: {get:function(){ return this.literal.length; }},
+    fixedLength: {get:function(){ return this.literal.length; }},
+    toString: {
+      value: function() {
+        return escape(this.literal);
+      },
+    },
+  });
   
   function OmarRepeat(omo, minCount, maxCount, greedy) {
     if (!(omo instanceof OmarObject)) throw new Error('not a valid omar object');
