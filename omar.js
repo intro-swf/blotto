@@ -312,6 +312,68 @@ define(function() {
     },
   });
   
+  function OmarCheck() {
+  }
+  OmarCheck.prototype = Object.create(OmarObject.prototype, {
+    minLength: {
+      value: 0,
+    },
+    maxLength: {
+      value: 0,
+    },
+    fixedLength: {
+      value: 0,
+    },
+  });
+  
+  OmarCheck.LEFT_ANCHOR = Object.create(OmarObject.prototype, {
+    toString: {
+      value: function() {
+        return '^';
+      },
+    },
+  });
+  
+  OmarCheck.RIGHT_ANCHOR = Object.create(OmarObject.prototype, {
+    toString: {
+      value: function() {
+        return '$';
+      },
+    },
+  });
+  
+  OmarCheck.WORD_BOUNDARY = Object.create(OmarObject.prototype, {
+    toString: {
+      value: function() {
+        return '\\b';
+      },
+    },
+  });
+  
+  OmarCheck.WORD_BOUNDARY.NEGATED = Object.create(OmarObject.prototype, {
+    toString: {
+      value: function() {
+        return '\\B';
+      },
+    },
+  });
+  
+  function OmarLook(type, omo) {
+    this.type = type;
+    this.omo = omo;
+  }
+  OmarLook.prototype = Object.create(OmarCheck.prototype, {
+    toString: {
+      value: function() {
+        return '(' + this.type + this.omo + ')';
+      },
+    },
+  });
+  OmarLook.AHEAD = '=';
+  OmarLook.AHEAD_NEGATED = '!';
+  OmarLook.BEHIND = '<=';
+  OmarLook.BEHIND_NEGATED = '<!';
+  
   const PAT_PART = new RegExp([
   /* literal - check !!match[1] */
     /([^\^\$\.\\\[\(\)\?\*\+\{\|]+)/,
@@ -392,6 +454,8 @@ define(function() {
     Literal: OmarLiteral,
     Sequence: OmarSequence,
     Repeat: OmarRepeat,
+    Check: OmarCheck,
+    Look: OmarLook,
   });
 
 });
