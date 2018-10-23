@@ -451,9 +451,11 @@ define(function() {
   return Object.assign(omar, {
     escape: escape,
     Object: OmarObject,
-    Literal: OmarLiteral,
     Sequence: OmarSequence,
+    Choice: OmarChoice,
     Repeat: OmarRepeat,
+    CharSet: OmarCharSet,
+    Literal: OmarLiteral,
     Check: OmarCheck,
     Look: OmarLook,
   });
