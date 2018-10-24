@@ -416,6 +416,8 @@ define(function() {
   
   const PAT_REP = /[\?\*\+\{]/;
   
+  const PAT_CHARSET_BACKSLASHED = /x[0-9a-fA-F]{2}|u(?:[0-9a-fA-F]{4}|\{[0-9a-fA-F]+\})|c[a-zA-Z]|0|[^xuc\d]/gy;
+  
   function omar(pattern) {
     if (pattern instanceof OmarObject) {
       return pattern;
@@ -494,6 +496,60 @@ define(function() {
         case '{':
           if (parts.length === 0) throw new Error('invalid pattern');
           parts.push(new OmarRepeat(parts.pop(), +match[2], isNaN(match[3]) ? Infinity : +match[3], match[0].slice(-1) !== '?'));
+          continue;
+        case '[':
+          var negated = match[0] === '[^';
+          var unionList = [];
+          var i = PAT_PART.lastIndex;
+          function readEscape() {
+            PAT_CHARSET_BACKSLASHED.lastIndex = i+1;
+            var match = PAT_CHARSET_BACKSLASHED.exec(pattern);
+            if (!match) throw new Error('invalid escape');
+            i = PAT_CHARSET_BACKSLASHED.lastIndex;
+            switch (match[0]) {
+              case 's': case 'S':
+              case 'w': case 'W':
+              case 'd': case 'D':
+                return OmarCharSet[match[0]];
+              case '0': return '\0';
+              case 'r': return '\r';
+              case 't': return '\t';
+              case 'b': return '\b';
+              case 'v': return '\v';
+              case 'x':
+                return String.fromCharCode(parseInt(match[0].slice(1)));
+              default: return match[0];
+            }
+          }
+          setLoop: for (;;) {
+            var character;
+            switch (pattern[i]) {
+              case ']':
+                PAT_PART.lastIndex = i+1;
+                break setLoop;
+              case '\\':
+                var escape = readEscape();
+                if (typeof escape !== 'string') {
+                  unionList.push(escape);
+                  continue setLoop;
+                }
+                break;
+              case undefined:
+                throw new Error('unterminated set');
+              default:
+                character = pattern[i++];
+                break;
+            }
+            if (pattern[i] !== '-') {
+              unionList.push(new OmarCharSet(pattern[i]));
+              continue setLoop;
+            }
+          }
+          var set = unionList.length === 1 ? unionList[0] : new OmarCharSetUnion(unionList);
+          if (negated) {
+            set = new OmarCharSetNegated(set);
+          }
+          parts.push(set);
           continue;
         case '\\':
           var addLiteral;
