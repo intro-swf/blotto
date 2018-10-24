@@ -34,7 +34,7 @@ define(function() {
     },
     toString: {
       value: function() {
-        return '(?OMAR)'; // invalid
+        return '(??INVALID)'; // invalid
       },
     },
     toRegExp: {
@@ -411,7 +411,7 @@ define(function() {
   /* start of a set */
     /\[\^?/,
   /* backslash escape */
-    /\\(?:[^cxu]|c[a-zA-Z]|x[0-9a-fA-F]{2}|u(?:[0-9a-fA-F]{4}|\{[0-9a-fA-F]{4,5}\}))/,
+    /\\(?:[^cxu]|c[a-zA-Z]|x[0-9a-fA-F]{2}|u(?:[0-9a-fA-F]{4}|\{[0-9a-fA-F]+\})|\d+)/,
   ].map(function(rx){ return rx.source; }).join('|'), 'gy');
   
   const PAT_REP = /[\?\*\+\{]/;
@@ -479,6 +479,22 @@ define(function() {
           if (!parts.parent) throw new Error('mismatched parentheses');
           parts = parts.parent;
           continue;
+        case '*':
+          if (parts.length === 0) throw new Error('invalid pattern');
+          parts.push(new OmarRepeat(parts.pop(), 0, Infinity, match[0] !== '*?'));
+          continue;
+        case '+':
+          if (parts.length === 0) throw new Error('invalid pattern');
+          parts.push(new OmarRepeat(parts.pop(), 1, Infinity, match[0] !== '+?'));
+          continue;
+        case '?':
+          if (parts.length === 0) throw new Error('invalid pattern');
+          parts.push(new OmarRepeat(parts.pop(), 0, 1, match[0] !== '??'));
+          continue;
+        case '{':
+          if (parts.length === 0) throw new Error('invalid pattern');
+          parts.push(new OmarRepeat(parts.pop(), +match[2], isNaN(match[3]) ? Infinity : +match[3], match[0].slice(-1) !== '?'));
+          continue;
         case '\\':
           var addLiteral;
           switch(match[0][1]) {
@@ -490,7 +506,7 @@ define(function() {
             case '1': case '2': case '3': case '4':
             case '5': case '6': case '7': case '8':
             case '9':
-              parts.push(new OmarBackReference(+match[0][1]));
+              parts.push(new OmarBackReference(+match[0].slice(1)));
               continue;
             case 'b':
               parts.push(OmarCheck.WORD_BOUNDARY);
@@ -499,6 +515,7 @@ define(function() {
               parts.push(OmarCheck.WORD_BOUNDARY.NEGATED);
               continue;
             case '0':
+              if (match[0] !== '0') throw new Error('invalid escape');
               addLiteral = '\0';
               break;
             case 'n':
