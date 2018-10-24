@@ -448,7 +448,7 @@ define(function() {
               parts.push(new OmarRepeat(finalChar, 0, Infinity, rep[0] !== '*?'));
               break;
             case '+':
-              parts.push(new OmarRepeat(finalChar, 1, Infinity, rep[0] !== '*?'));
+              parts.push(new OmarRepeat(finalChar, 1, Infinity, rep[0] !== '+?'));
               break;
             case '?':
               parts.push(new OmarRepeat(finalChar, 0, 1, rep[0] !== '??'));
@@ -545,7 +545,7 @@ define(function() {
                 parts.push(new OmarRepeat(addLiteral, 0, Infinity, rep[0] !== '*?'));
                 break;
               case '+':
-                parts.push(new OmarRepeat(addLiteral, 1, Infinity, rep[0] !== '*?'));
+                parts.push(new OmarRepeat(addLiteral, 1, Infinity, rep[0] !== '+?'));
                 break;
               case '?':
                 parts.push(new OmarRepeat(addLiteral, 0, 1, rep[0] !== '??'));
