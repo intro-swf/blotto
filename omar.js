@@ -75,6 +75,7 @@ define(function() {
         return max;
       },
     },
+    type: {value:'sequence'},
   });
   OmarSequence.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
   OmarSequence.EMPTY = new OmarSequence([]);
@@ -113,6 +114,7 @@ define(function() {
         return '(?:' + Array.prototype.join.call(this, '|') + ')';
       },
     },
+    type: {value:'choice'},
   });
   OmarChoice.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
   
@@ -171,16 +173,16 @@ define(function() {
         return this.greedy ? str+mod : str+mod+'?';
       },
     },
+    type: {value:'repeat'},
   });
   
-  function OmarCharSet(chars, negated) {
+  function OmarCharSet(chars) {
     if (typeof chars !== 'string') {
       throw new Error('invalid char set');
     }
     this.chars = chars;
-    this.negated = !!negated;
   }
-  OmarCharSet.prototype = Obect.create(OmarObject.prototype, {
+  OmarCharSet.prototype = Object.create(OmarObject.prototype, {
     minLength: {
       value: 1,
     },
@@ -190,11 +192,15 @@ define(function() {
     fixedLength: {
       value: 1,
     },
+    get inSetString() {
+      return escapeSet(this.chars);
+    },
     toString: {
       value: function() {
-        return (this.negated?'[^':'[') + this.chars + ']';
+        return '[' + this.inSetString + ']';
       },
     },
+    type: {value:'charset'},
   });
   
   OmarCharSet.DOT = Object.create(OmarCharSet.prototype, {
@@ -310,6 +316,7 @@ define(function() {
         return escape(this.literal);
       },
     },
+    type: {value:'literal'},
   });
   
   function OmarCheck() {
@@ -324,6 +331,7 @@ define(function() {
     fixedLength: {
       value: 0,
     },
+    type: {value:'check'},
   });
   
   OmarCheck.LEFT_ANCHOR = Object.create(OmarObject.prototype, {
@@ -332,6 +340,7 @@ define(function() {
         return '^';
       },
     },
+    checkType: {value:'leftAnchor'},
   });
   
   OmarCheck.RIGHT_ANCHOR = Object.create(OmarObject.prototype, {
@@ -340,6 +349,7 @@ define(function() {
         return '$';
       },
     },
+    checkType: {value:'rightAnchor'},
   });
   
   OmarCheck.WORD_BOUNDARY = Object.create(OmarObject.prototype, {
@@ -348,6 +358,8 @@ define(function() {
         return '\\b';
       },
     },
+    checkType: {value:'wordBoundary'},
+    negated: {value:false},
   });
   
   OmarCheck.WORD_BOUNDARY.NEGATED = Object.create(OmarObject.prototype, {
@@ -356,6 +368,7 @@ define(function() {
         return '\\B';
       },
     },
+    negated: {value:true},
   });
   
   function OmarLook(type, omo) {
@@ -387,7 +400,7 @@ define(function() {
     /\[\^?/,
   /* backslash escape */
     /\\(?:[^cxu]|c[a-zA-Z]|x[0-9a-fA-F]{2}|u(?:[0-9a-fA-F]{4}|\{[0-9a-fA-F]{4,5}\}))/,
-  ].map(function(rx){ return rx.source; }).join('|'), 'g');
+  ].map(function(rx){ return rx.source; }).join('|'), 'gy');
   
   const PAT_REP = /[\?\*\+\{]/;
   
@@ -401,24 +414,22 @@ define(function() {
     else if (typeof pattern !== 'string') {
       throw new Error('pattern must be a string');
     }
-    var parts = [], startIndex = 0;
+    var parts = [];
     PAT_PART.lastIndex = 0;
-    for (var match = PAT_PART.exec(pattern); startIndex < pattern.length; match = PAT_PART.exec(pattern)) {
-      if (!match || match.index !== startIndex) {
+    for (var match = PAT_PART.exec(pattern); PAT_PART.lastIndex < pattern.length; match = PAT_PART.exec(pattern)) {
+      if (!match) {
         throw new Error('unrecognized content in pattern');
       }
-      startIndex = PAT_PART.lastIndex;
       if (match[1]) {
         // literal
-        if (PAT_REP.test(pattern[startIndex])) {
+        if (PAT_REP.test(pattern[PAT_PART.lastIndex])) {
           if (match[1].length > 1) {
             parts.push(new OmarLiteral(match[1].slice(0, -1)));
           }
           var rep = PAT_PART.exec(pattern);
-          if (!rep || rep.index !== startIndex) {
+          if (!rep) {
             throw new Error('unrecognized content in pattern');
           }
-          startIndex = PAT_PART.lastIndex;
           var finalChar = new OmarLiteral(match[1].slice(-1));
           switch (rep[0][0]) {
             case '*':
@@ -440,8 +451,26 @@ define(function() {
         }
         continue;
       }
+      switch (match[0][0]) {
+        case '.':
+          parts.push(OmarCharSet.DOT);
+          continue;
+        case '|':
+          continue;
+        case '^':
+          parts.push(OmarCheck.LEFT_ANCHOR);
+          continue;
+        case '$':
+          parts.push(OmarCheck.RIGHT_ANCHOR);
+          continue;
+        case ')':
+          if (!parts.parent) throw new Error('mismatched parentheses');
+          parts = parts.parent;
+          continue;
+      }
     }
-    switch (pattern.length) {
+    if (parts.parent) throw new Error('mismatched parentheses');
+    switch (parts.length) {
       case 0: return OmarSequence.EMPTY;
       case 1: return parts[1];
       case 2: return new OmarSequence(parts);
