@@ -192,113 +192,113 @@ define(function() {
     fixedLength: {
       value: 1,
     },
-    get inSetString() {
-      return escapeSet(this.chars);
+    inSetString: {
+      get: function() {
+        return escapeSet(this.chars);
+      },
     },
     toString: {
       value: function() {
-        return '[' + this.inSetString + ']';
+        var str = this.inSetString;
+        if (str === null) return '(??INVALID_SET)';
+        return '[' + str + ']';
       },
     },
     type: {value:'charset'},
   });
   
-  OmarCharSet.DOT = Object.create(OmarCharSet.prototype, {
-    negated: {
-      value: true,
+  function OmarCharSetUnion(iter) {
+    this.length = 0;
+    for (var charset of iter) {
+      if (!(charset instanceof OmarCharSet)) {
+        throw new Error('not a charset object');
+      }
+      this[this.length++] = charset;
+    }
+    Object.freeze(this);
+  }
+  OmarCharSetUnion.prototype = Object.create(OmarCharSet.prototype, {
+    inSetString: {
+      get: function() {
+        var arr = new Array(this.length);
+        for (var i = 0; i < arr.length; i++) {
+          var str = this[i].inSetString;
+          if (str === null) return null;
+          arr[i] = str;
+        }
+        return arr.join('');
+      },
     },
-    chars: {
-      value: '\r\n\u2028\u2029',
-    },
+  });
+  OmarCharSetUnion.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
+  
+  function OmarCharSetNegated(charset) {
+    this.charset = charset;
+    Object.freeze(this);
+  }
+  OmarCharSetNegated.prototype = Object.create(OmarCharSet.prototype, {
+    inSetString: {value:null},
     toString: {
       value: function() {
-        return '.';
+        var str = this.charset.inSetString;
+        if (str === null) return '(??INVALID_SET)';
+        return '[^' + str + ']';
       },
     },
   });
   
-  OmarCharSet.DECIMAL_DIGIT = Object.create(OmarCharSet.prototype, {
-    negated: {
-      value: false,
-    },
-    chars: {
-      value: '0-9',
-    },
-    toString: {
-      value: function() {
-        return '\\d';
+  function OmarCharRange(fromChar, toChar) {
+    this.fromChar = fromChar;
+    this.toChar = toChar;
+  }
+  OmarCharRange.prototype = Object.create(OmarCharSet.prototype, {
+    inSetString: {
+      get: function() {
+        return escapeSet(this.fromChar) + '-' + escapeSet(this.toChar);
       },
     },
   });
   
-  OmarCharSet.DECIMAL_DIGIT.NEGATED = Object.create(OmarCharSet.prototype, {
-    negated: {
-      value: true,
-    },
-    chars: {
-      value: '0-9',
+  function OmarCharSetRef(ref, charset, notInSet) {
+    this.ref = ref;
+    this.charset = charset;
+    if (notInSet) {
+      Object.defineProperty(this, 'inSetString', {
+        value: null,
+      });
+    }
+    Object.freeze(this);
+  }
+  OmarCharSetRef.prototype = Object.create(OmarCharSet.prototype, {
+    inSetString: {
+      get: function() {
+        return this.ref;
+      },
     },
     toString: {
       value: function() {
-        return '\\D';
+        return this.ref;
       },
     },
   });
   
-  OmarCharSet.ALPHANUMERIC = Object.create(OmarCharSet.prototype, {
-    negated: {
-      value: false,
-    },
-    chars: {
-      value: 'A-Za-z0-9_',
-    },
-    toString: {
-      value: function() {
-        return '\\w';
-      },
-    },
-  });
-  
-  OmarCharSet.ALPHANUMERIC.NEGATED = Object.create(OmarCharSet.prototype, {
-    negated: {
-      value: true,
-    },
-    chars: {
-      value: 'A-Za-z0-9_',
-    },
-    toString: {
-      value: function() {
-        return '\\W';
-      },
-    },
-  });
-  
-  OmarCharSet.WHITESPACE = Object.create(OmarCharSet.prototype, {
-    negated: {
-      value: false,
-    },
-    chars: {
-      value: ' \f\n\r\t\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff',
-    },
-    toString: {
-      value: function() {
-        return '\\s';
-      },
-    },
-  });
-  
-  OmarCharSet.WHITESPACE.NEGATED = Object.create(OmarCharSet.prototype, {
-    negated: {
-      value: true,
-    },
-    chars: {
-      value: ' \f\n\r\t\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff',
-    },
-    toString: {
-      value: function() {
-        return '\\S';
-      },
-    },
+  OmarCharSet.DOT = new OmarCharSetRef('.', new OmarCharSetNegated(new OmarCharSet('\r\n\u2028\u2029')), true);
+  [
+    ['s', new OmarCharSetUnion([
+      new OmarCharSet(' \f\n\r\t\v\u00a0\u1680'),
+      new OmarCharRange('\u2000','\u200a'),
+      new OmarCharSet('\u2028\u2029\u202f\u205f\u3000\ufeff'),
+    ])],
+    ['d', new OmarCharRange('0','9')],
+    ['w', new OmarCharSetUnion([
+      new OmarCharRange('0','9'),
+      new OmarCharRange('A','Z'),
+      new OmarCharRange('a','z'),
+      new OmarCharSet('_'),
+    ])],
+  ].forEach(function(v) {
+    OmarCharSet[v[0]] = new OmarCharSetRef('\\'+v[0], v[1]);
+    OmarCharSet[v[0].toUpperCase()] = new OmarCharSetRef('\\'+v[0].toUpperCase(), new OmarCharSetNegated(v[1]));
   });
   
   function OmarLiteral(literal) {
@@ -386,6 +386,18 @@ define(function() {
   OmarLook.AHEAD_NEGATED = '!';
   OmarLook.BEHIND = '<=';
   OmarLook.BEHIND_NEGATED = '<!';
+  
+  function OmarBackReference(number) {
+    this.number = number;
+    Object.freeze(this);
+  }
+  OmarBackReference.prototype = Object.create(OmarObject.prototype, {
+    toString: {
+      value: function() {
+        return '\\'+this.number;
+      },
+    },
+  });
   
   const PAT_PART = new RegExp([
   /* literal - check !!match[1] */
