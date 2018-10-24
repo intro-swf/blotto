@@ -445,16 +445,16 @@ define(function() {
           var finalChar = new OmarLiteral(match[1].slice(-1));
           switch (rep[0][0]) {
             case '*':
-              parts.push(new OmarRepeat(finalChar, 0, Infinity, rep[0] !== '*?');
+              parts.push(new OmarRepeat(finalChar, 0, Infinity, rep[0] !== '*?'));
               break;
             case '+':
-              parts.push(new OmarRepeat(finalChar, 1, Infinity, rep[0] !== '*?');
+              parts.push(new OmarRepeat(finalChar, 1, Infinity, rep[0] !== '*?'));
               break;
             case '?':
-              parts.push(new OmarRepeat(finalChar, 0, 1, rep[0] !== '??');
+              parts.push(new OmarRepeat(finalChar, 0, 1, rep[0] !== '??'));
               break;
             default:
-              parts.push(new OmarRepeat(finalChar, +rep[2], isNaN(rep[3]) ? Infinity : +rep[3], rep[0].slice(-1) !== '?');
+              parts.push(new OmarRepeat(finalChar, +rep[2], isNaN(rep[3]) ? Infinity : +rep[3], rep[0].slice(-1) !== '?'));
               break;
           }
         }
@@ -478,6 +478,90 @@ define(function() {
         case ')':
           if (!parts.parent) throw new Error('mismatched parentheses');
           parts = parts.parent;
+          continue;
+        case '\\':
+          var addLiteral;
+          switch(match[0][1]) {
+            case 'w': case 'W':
+            case 's': case 'S':
+            case 'd': case 'D':
+              parts.push(OmarCharSet[match[0][1]]);
+              continue;
+            case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8':
+            case '9':
+              parts.push(new OmarBackReference(+match[0][1]));
+              continue;
+            case 'b':
+              parts.push(OmarCheck.WORD_BOUNDARY);
+              continue;
+            case 'B':
+              parts.push(OmarCheck.WORD_BOUNDARY.NEGATED);
+              continue;
+            case '0':
+              addLiteral = '\0';
+              break;
+            case 'n':
+              addLiteral = '\n';
+              break;
+            case 'r':
+              addLiteral = '\r';
+              break;
+            case 't':
+              addLiteral = '\t';
+              break;
+            case 'v':
+              addLiteral = '\v';
+              break;
+            case 'f':
+              addLiteral = '\f';
+              continue;
+            case 'c':
+              addLiteral = String.fromCharCode(match[0][2].toUpperCase().charCodeAt(0) - 65);
+              break;
+            case 'x':
+              addLiteral = String.fromCharCode(parseInt(match[0].slice(2), 16));
+              break;
+            case 'u':
+              if (match[0][2] === '{') {
+                addLiteral = String.fromCodePoint(parseInt(match[0].slice(3, -1), 16));
+              }
+              else {
+                addLiteral = String.fromCharCode(parseInt(match[0].slice(2), 16));
+              }
+              break;
+            default:
+              addLiteral = new OmarLiteral(match[0][1]);
+              break;
+          }
+          if (PAT_REP.test(pattern[PAT_PART.lastIndex])) {
+            var rep = PAT_PART.exec(pattern);
+            if (!rep) {
+              throw new Error('unrecognized content in pattern');
+            }
+            addLiteral = new OmarLiteral(addLiteral);
+            switch (rep[0][0]) {
+              case '*':
+                parts.push(new OmarRepeat(addLiteral, 0, Infinity, rep[0] !== '*?'));
+                break;
+              case '+':
+                parts.push(new OmarRepeat(addLiteral, 1, Infinity, rep[0] !== '*?'));
+                break;
+              case '?':
+                parts.push(new OmarRepeat(addLiteral, 0, 1, rep[0] !== '??'));
+                break;
+              default:
+                parts.push(new OmarRepeat(addLiteral, +rep[2], isNaN(rep[3]) ? Infinity : +rep[3], rep[0].slice(-1) !== '?'));
+                break;
+            }
+            continue;
+          }
+          else if (parts[parts.length-1] instanceof OmarLiteral) {
+            parts[parts.length-1] = new OmarLiteral(parts[parts.length-1].literal + addLiteral);
+          }
+          else {
+            parts.push(new OmarLiteral(addLiteral));
+          }
           continue;
       }
     }
