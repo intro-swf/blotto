@@ -517,7 +517,7 @@ define(function() {
               addLiteral = '\f';
               continue;
             case 'c':
-              addLiteral = String.fromCharCode(match[0][2].toUpperCase().charCodeAt(0) - 65);
+              addLiteral = String.fromCharCode(match[0][2].toUpperCase().charCodeAt(0) - 65 + 1);
               break;
             case 'x':
               addLiteral = String.fromCharCode(parseInt(match[0].slice(2), 16));
