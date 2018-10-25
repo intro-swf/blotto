@@ -37,6 +37,11 @@ define(function() {
         return '(??INVALID)'; // invalid
       },
     },
+    toAtom: {
+      value: function() {
+        return this.toString();
+      },
+    },
     toRegExp: {
       value: function(flags) {
         return new RegExp(this.toString(), flags);
@@ -81,6 +86,11 @@ define(function() {
         return Array.prototype.join.call(this, '');
       },
     },
+    toAtom: {
+      value: function() {
+        return this.length === 1 ? this[0].toAtom() : '(?:' + this.toString() + ')';
+      },
+    },
   });
   OmarSequence.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
   OmarSequence.EMPTY = new OmarSequence([]);
@@ -116,7 +126,12 @@ define(function() {
     },
     toString: {
       value: function() {
-        return '(?:' + Array.prototype.join.call(this, '|') + ')';
+        return Array.prototype.join.call(this, '|');
+      },
+    },
+    toAtom: {
+      value: function() {
+        return this.length === 1 ? this[0].toAtom() : '(?:' + this.toString() + ')';
       },
     },
     type: {value:'choice'},
@@ -150,8 +165,7 @@ define(function() {
     },
     toString: {
       value: function() {
-        var str = this.repeatObject.toString();
-        str = '(?:' + str + ')'; // TODO: only do this when necessary
+        var str = this.repeatObject.toAtom();
         var mod;
         switch (this.minCount) {
           case 0:
@@ -319,6 +333,11 @@ define(function() {
     toString: {
       value: function() {
         return escape(this.literal);
+      },
+    },
+    toAtom: {
+      value: function() {
+        return this.literal.length === 1 ? this.literal : '(?:' + this.literal + ')';
       },
     },
     type: {value:'literal'},
