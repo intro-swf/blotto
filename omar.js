@@ -186,7 +186,15 @@ define(function() {
             }
             break;
           default:
-            mod = '{'+this.minCount+','+this.maxCount+'}';
+            if (this.minCount === this.maxCount) {
+              mod = '{'+this.minCount+'}';
+            }
+            else if (!isFinite(this.maxCount)) {
+              mod = '{'+this.minCount+',}';
+            }
+            else {
+              mod = '{'+this.minCount+','+this.maxCount+'}';
+            }
             break;
         }
         return this.greedy ? str+mod : str+mod+'?';
