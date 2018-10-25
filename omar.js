@@ -602,7 +602,7 @@ define(function() {
               parts.push(OmarCheck.WORD_BOUNDARY.NEGATED);
               continue;
             case '0':
-              if (match[0] !== '0') throw new Error('invalid escape');
+              if (match[0] !== '\\0') throw new Error('invalid escape');
               addLiteral = '\0';
               break;
             case 'n':
