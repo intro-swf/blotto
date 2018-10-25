@@ -430,7 +430,8 @@ define(function() {
     }
     var parts = [];
     PAT_PART.lastIndex = 0;
-    for (var match = PAT_PART.exec(pattern); PAT_PART.lastIndex < pattern.length; match = PAT_PART.exec(pattern)) {
+    while (PAT_PART.lastIndex < pattern.length) {
+      var match = PAT_PART.exec(pattern);
       if (!match) {
         throw new Error('unrecognized content in pattern');
       }
