@@ -496,6 +496,11 @@ define(function() {
     }
     var parts = [];
     function processParts() {
+      if (parts.type === 'choice') {
+        var options = parts;
+        parts = parts.parent;
+        return new OmarChoice(options);
+      }
       for (var i = 0; i < parts.length; i++) {
         if (typeof parts[i] !== 'string') continue;
         var j = i;
@@ -565,16 +570,19 @@ define(function() {
           parts.push(OmarCharSet.DOT);
           continue;
         case '|':
-          if (!parts.parent || parts.parent.type !== 'choice') {
-            parts.parent = Object.assign([], {
-              type: 'choice',
-              parent: parts.parent,
+          if (parts.type !== 'option') {
+            parts = Object.assign(parts.slice(0, parts.length), {
+              type: 'option',
+              parent: Object.assign([], {
+                type: 'choice',
+                parent: parts,
+              }),
             });
           }
           var complete = processParts();
           parts.push(complete);
           parts = Object.assign([], {
-            type: 'sequence',
+            type: 'option',
             parent: parts,
           });
           continue;
@@ -628,14 +636,12 @@ define(function() {
           var type = parts.type;
           var complete = processParts();
           if (!parts) throw new Error('mismatched parentheses');
-          if (parts.type === 'choice') {
-            parts.push(complete);
-            var choice = new OmarChoice(parts);
-            parts = parts.parent;
-            parts.push(choice);
-            continue;
-          }
           switch (type) {
+            case 'option':
+              parts.push(complete);
+              complete = processParts();
+              parts.push(complete);
+              break;
             case 'sequence':
               parts.push(complete);
               break;
@@ -858,15 +864,13 @@ define(function() {
           continue;
       }
     }
+    if (parts.type === 'option') {
+      var option = processParts();
+      parts.push(option);
+    }
     var topLevel = processParts();
     if (parts) {
-      if (parts.type === 'choice' && !parts.parent) {
-        parts.push(topLevel);
-        topLevel = new OmarChoice(parts);
-      }
-      else {
-        throw new Error('mismatched parentheses');
-      }
+      throw new Error('mismatched parentheses');
     }
     return topLevel;
   }
