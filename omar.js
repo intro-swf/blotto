@@ -544,8 +544,8 @@ define(function() {
               case 'f': return '\f';
               case 'c':
                 return String.fromCharCode(match[0].toUpperCase().charCodeAt(1)-65+1);
-              case 'x':
-                return String.fromCharCode(parseInt(match[0].slice(1), 16));
+              case 'x': case 'u':
+                return String.fromCharCode(parseInt(match[0].slice(1).replace(/[{}]/g, ''), 16));
               default: return match[0];
             }
           }
