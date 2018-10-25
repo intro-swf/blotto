@@ -543,7 +543,7 @@ define(function() {
               case 'v': return '\v';
               case 'f': return '\f';
               case 'c':
-                return String.fromCharCode(match[0].charCodeAt(1).toUpperCase()-65+1);
+                return String.fromCharCode(match[0].toUpperCase().charCodeAt(1)-65+1);
               case 'x':
                 return String.fromCharCode(parseInt(match[0].slice(1)));
               default: return match[0];
