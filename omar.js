@@ -565,15 +565,9 @@ define(function() {
           continue;
         case '|':
           if (!parts.parent || parts.parent.type !== 'choice') {
-            var firstChoice = parts.splice(0, parts.length);
-            firstChoice.type = 'sequence';
-            parts = Object.assign([], {
+            parts.parent = Object.assign([], {
               type: 'choice',
-              parent: parts,
-            });
-            parts = Object.assign(firstChoice, {
-              type: 'sequence',
-              parent: parts,
+              parent: parts.parent,
             });
           }
           var complete = processParts();
