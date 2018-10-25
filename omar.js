@@ -863,7 +863,15 @@ define(function() {
       }
     }
     var topLevel = processParts();
-    if (parts) throw new Error('mismatched parentheses');
+    if (parts) {
+      if (parts.type === 'choice' && !parts.parent) {
+        parts.push(topLevel);
+        topLevel = new OmarChoice(parts);
+      }
+      else {
+        throw new Error('mismatched parentheses');
+      }
+    }
     return topLevel;
   }
   
