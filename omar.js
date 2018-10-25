@@ -435,9 +435,10 @@ define(function() {
     negated: {value:true},
   });
   
-  function OmarLook(type, omo) {
-    this.type = type;
+  function OmarLook(where, omo) {
+    this.where = where;
     this.omo = omo;
+    Object.freeze(true);
   }
   OmarLook.prototype = Object.create(OmarCheck.prototype, {
     toString: {
