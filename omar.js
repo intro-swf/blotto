@@ -443,7 +443,7 @@ define(function() {
   OmarLook.prototype = Object.create(OmarCheck.prototype, {
     toString: {
       value: function() {
-        return '(' + this.type + this.omo + ')';
+        return '(?' + this.where + this.omo + ')';
       },
     },
   });
