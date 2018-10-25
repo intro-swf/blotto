@@ -212,7 +212,7 @@ define(function() {
     this.capturing = omo;
     Object.freeze(this);
   }
-  OmarCapture.prototype = Object.create(OmarObject, {
+  OmarCapture.prototype = Object.create(OmarObject.prototype, {
     minLength: {
       get: function() {
         return this.capturing.minLength;
