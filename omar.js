@@ -564,6 +564,24 @@ define(function() {
           parts.push(OmarCharSet.DOT);
           continue;
         case '|':
+          var complete = processParts();
+          if (parts.type === 'choice') {
+            parts.push(complete);
+            parts = Object.assign([], {
+              type: 'sequence',
+              parent: parts,
+            });
+          }
+          else {
+            parts = Object.assign([complete], {
+              type: 'choice',
+              parent: parts,
+            });
+            parts = Object.assign([], {
+              type: 'sequence',
+              parent: parts,
+            });
+          }
           continue;
         case '^':
           parts.push(OmarCheck.LEFT_ANCHOR);
@@ -615,6 +633,12 @@ define(function() {
           var type = parts.type;
           var complete = processParts();
           if (!parts) throw new Error('mismatched parentheses');
+          if (parts.type === 'choice') {
+            var choice = new OmarChoice(parts);
+            parts = parts.parent;
+            parts.push(choice);
+            continue;
+          }
           switch (type) {
             case 'sequence':
               parts.push(complete);
