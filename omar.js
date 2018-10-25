@@ -7,7 +7,7 @@ define(function() {
   function escapeControlCodes(str) {
     return str.replace(/[\x00-\x1F\x7F]/, function(c) {
       switch (c = c.charCodeAt(0)) {
-        case 9: return '\\t':
+        case 9: return '\\t';
         case 10: return '\\n';
         case 13: return '\\r';
         default: return '\\x' + ('0' + c.toString(16)).slice(-2);
