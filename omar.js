@@ -564,24 +564,20 @@ define(function() {
           parts.push(OmarCharSet.DOT);
           continue;
         case '|':
-          var complete = processParts();
-          if (parts.type === 'choice') {
-            parts.push(complete);
+          if (!parts.parent || parts.parent.type !== 'choice') {
+            var firstChoice = parts.splice(0, parts.length);
+            firstChoice.type = 'sequence';
             parts = Object.assign([], {
-              type: 'sequence',
-              parent: parts,
-            });
-          }
-          else {
-            parts = Object.assign([complete], {
               type: 'choice',
               parent: parts,
             });
-            parts = Object.assign([], {
+            parts = Object.assign(firstChoice, {
               type: 'sequence',
               parent: parts,
             });
           }
+          var complete = processParts();
+          parts.push(complete);
           continue;
         case '^':
           parts.push(OmarCheck.LEFT_ANCHOR);
