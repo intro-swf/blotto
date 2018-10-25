@@ -83,7 +83,10 @@ define(function() {
     type: {value:'sequence'},
     toString: {
       value: function() {
-        return Array.prototype.join.call(this, '');
+        return Array.prototype.map.call(this, function(omo) {
+          if (omo instanceof OmarChoice) return '(?:'+omo+')';
+          return omo;
+        }).join('');
       },
     },
     toAtom: {
@@ -571,7 +574,7 @@ define(function() {
           continue;
         case '|':
           if (parts.type !== 'option') {
-            parts = Object.assign(parts.slice(0, parts.length), {
+            parts = Object.assign(parts.splice(0, parts.length), {
               type: 'option',
               parent: Object.assign([], {
                 type: 'choice',
