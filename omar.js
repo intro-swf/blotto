@@ -637,14 +637,15 @@ define(function() {
           }
         case ')':
           var type = parts.type;
+          if (type === 'option') {
+            var option = processParts();
+            parts.push(option);
+            var choice = processParts();
+            if (!parts) throw new Error('mismatched parentheses');
+          }
           var complete = processParts();
           if (!parts) throw new Error('mismatched parentheses');
           switch (type) {
-            case 'option':
-              parts.push(complete);
-              complete = processParts();
-              parts.push(complete);
-              break;
             case 'sequence':
               parts.push(complete);
               break;
