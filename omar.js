@@ -429,7 +429,7 @@ define(function() {
   /* single characters */
     /[\.\|\)\^\$]/,
   /* count modifiers - match[2] min, match[3] max */
-    /(?:[\+\*\?]|\{(\d+)(?:,(\d*))?\})\??/,
+    /(?:[\+\*\?]|\{(\d+)(,\d*)?\})\??/,
   /* group */
     /\((?:\?[:!=]|(?!\?))?/,
   /* start of a set */
@@ -481,7 +481,15 @@ define(function() {
               parts.push(new OmarRepeat(finalChar, 0, 1, rep[0] !== '??'));
               break;
             default:
-              parts.push(new OmarRepeat(finalChar, +rep[2], isNaN(rep[3]) ? Infinity : +rep[3], rep[0].slice(-1) !== '?'));
+              if (!rep[3]) {
+                parts.push(new OmarRepeat(finalChar, +rep[2], +rep[2], rep[0].slice(-1) !== '?'));
+              }
+              else if (rep[3] === ',') {
+                parts.push(new OmarRepeat(finalChar, +rep[2], Infinity, rep[0].slice(-1) !== '?'));
+              }
+              else {
+                parts.push(new OmarRepeat(finalChar, +rep[2], +rep[3].slice(1), rep[0].slice(-1) !== '?'));
+              }
               break;
           }
         }
@@ -520,7 +528,15 @@ define(function() {
           continue;
         case '{':
           if (parts.length === 0) throw new Error('invalid pattern');
-          parts.push(new OmarRepeat(parts.pop(), +match[2], isNaN(match[3]) ? Infinity : +match[3], match[0].slice(-1) !== '?'));
+          if (!match[3]) {
+            parts.push(new OmarRepeat(parts.pop(), +match[2], +match[2], match[0].slice(-1) !== '?'));
+          }
+          else if (match[3] === ',') {
+            parts.push(new OmarRepeat(parts.pop(), +match[2], Infinity, match[0].slice(-1) !== '?'));
+          }
+          else {
+            parts.push(new OmarRepeat(parts.pop(), +match[2], +match[3].slice(1), match[0].slice(-1) !== '?'));
+          }
           continue;
         case '[':
           var negated = match[0] === '[^';
