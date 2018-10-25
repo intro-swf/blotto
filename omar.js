@@ -629,6 +629,7 @@ define(function() {
           var complete = processParts();
           if (!parts) throw new Error('mismatched parentheses');
           if (parts.type === 'choice') {
+            parts.push(complete);
             var choice = new OmarChoice(parts);
             parts = parts.parent;
             parts.push(choice);
