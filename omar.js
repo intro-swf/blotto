@@ -578,6 +578,10 @@ define(function() {
           }
           var complete = processParts();
           parts.push(complete);
+          parts = Object.assign([], {
+            type: 'sequence',
+            parent: parts,
+          });
           continue;
         case '^':
           parts.push(OmarCheck.LEFT_ANCHOR);
