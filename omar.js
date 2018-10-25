@@ -643,6 +643,7 @@ define(function() {
             var choice = processParts();
             if (!parts) throw new Error('mismatched parentheses');
             type = parts.type;
+            parts.push(choice);
           }
           var complete = processParts();
           if (!parts) throw new Error('mismatched parentheses');
