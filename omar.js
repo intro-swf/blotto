@@ -867,6 +867,8 @@ define(function() {
     if (parts.type === 'option') {
       var option = processParts();
       parts.push(option);
+      var choice = processParts();
+      parts.push(choice);
     }
     var topLevel = processParts();
     if (parts) {
