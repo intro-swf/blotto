@@ -200,7 +200,39 @@ define(function() {
         return this.greedy ? str+mod : str+mod+'?';
       },
     },
+    toAtom: {
+      value: function() {
+        return '(?:'+this+')';
+      },
+    },
     type: {value:'repeat'},
+  });
+  
+  function OmarCapture(omo) {
+    this.capturing = omo;
+    Object.freeze(this);
+  }
+  OmarCapture.prototype = Object.create(OmarObject, {
+    minLength: {
+      get: function() {
+        return this.capturing.minLength;
+      },
+    },
+    maxLength: {
+      get: function() {
+        return this.capturing.maxLength;
+      },
+    },
+    fixedLength: {
+      get: function() {
+        return this.capturing.fixedLength;
+      },
+    },
+    toString: {
+      value: function() {
+        return '(' + this.capturing + ')';
+      },
+    },
   });
   
   function OmarCharSet(chars) {
@@ -461,6 +493,26 @@ define(function() {
       throw new Error('pattern must be a string');
     }
     var parts = [];
+    function processParts() {
+      for (var i = 0; i < parts.length; i++) {
+        if (typeof parts[i] !== 'string') continue;
+        var j = i;
+        do { j++; } while (typeof parts[j] === 'string');
+        if (j === i+1) {
+          parts[i] = new OmarLiteral(parts[i]);
+        }
+        else {
+          parts.splice(i, j-i, new OmarLiteral(parts.slice(i, j).join('')));
+        }
+      }
+      var retParts = parts;
+      parts = parts.parent;
+      switch (retParts.length) {
+        case 0: return OmarSequence.EMPTY;
+        case 1: return retParts[0];
+        default: return new OmarSequence(retParts);
+      }
+    }
     PAT_PART.lastIndex = 0;
     while (PAT_PART.lastIndex < pattern.length) {
       var match = PAT_PART.exec(pattern);
@@ -471,7 +523,7 @@ define(function() {
         // literal
         if (PAT_REP.test(pattern[PAT_PART.lastIndex])) {
           if (match[1].length > 1) {
-            parts.push(new OmarLiteral(match[1].slice(0, -1)));
+            parts.push(match[1].slice(0, -1));
           }
           var rep = PAT_PART.exec(pattern);
           if (!rep) {
@@ -502,7 +554,7 @@ define(function() {
           }
         }
         else {
-          parts.push(new OmarLiteral(match[0]));
+          parts.push(match[0]);
         }
         continue;
       }
@@ -518,9 +570,72 @@ define(function() {
         case '$':
           parts.push(OmarCheck.RIGHT_ANCHOR);
           continue;
+        case '(':
+          switch(match[0]) {
+            case '(':
+              parts = Object.assign([], {
+                type: 'capture',
+                parent: parts,
+              });
+              continue;
+            case '(?:':
+              parts = Object.assign([], {
+                type: 'sequence',
+                parent: parts,
+              });
+              continue;
+            case '(?=':
+              parts = Object.assign([], {
+                type: 'ahead',
+                parent: parts,
+              });
+              continue;
+            case '(?!':
+              parts = Object.assign([], {
+                type: '!ahead',
+                parent: parts,
+              });
+              continue;
+            case '(?<=':
+              parts = Object.assign([], {
+                type: 'behind',
+                parent: parts,
+              });
+              continue;
+            case '(?<!':
+              parts = Object.assign([], {
+                type: '!behind',
+                parent: parts,
+              });
+              continue;
+            default: throw new Error('unknown group type');
+          }
         case ')':
-          if (!parts.parent) throw new Error('mismatched parentheses');
-          parts = parts.parent;
+          var type = parts.type;
+          var complete = processParts();
+          if (!parts) throw new Error('mismatched parentheses');
+          switch (type) {
+            case 'sequence':
+              parts.push(complete);
+              break;
+            case 'capture':
+              parts.push(new OmarCapture(complete));
+              break;
+            case 'ahead':
+              parts.push(new OmarLook(OmarLook.AHEAD, complete));
+              break;
+            case '!ahead':
+              parts.push(new OmarLook(OmarLook.AHEAD_NEGATED, complete));
+              break;
+            case 'behind':
+              parts.push(new OmarLook(OmarLook.BEHIND, complete));
+              break;
+            case '!behind':
+              parts.push(new OmarLook(OmarLook.BEHIND_NEGATED, complete));
+              break;
+            default:
+              throw new Error('unknown sequence type');
+          }
           continue;
         case '*':
           if (parts.length === 0) throw new Error('invalid pattern');
@@ -703,26 +818,28 @@ define(function() {
                 parts.push(new OmarRepeat(addLiteral, 0, 1, rep[0] !== '??'));
                 break;
               default:
-                parts.push(new OmarRepeat(addLiteral, +rep[2], isNaN(rep[3]) ? Infinity : +rep[3], rep[0].slice(-1) !== '?'));
+                if (!rep[3]) {
+                  parts.push(new OmarRepeat(addLiteral, +rep[2], +rep[2], rep[0].slice(-1) !== '?'));
+                }
+                else if (rep[3] === ',') {
+                  parts.push(new OmarRepeat(addLiteral, +rep[2], Infinity, rep[0].slice(-1) !== '?'));
+                }
+                else {
+                  parts.push(new OmarRepeat(addLiteral, +rep[2], +rep[3].slice(1), rep[0].slice(-1) !== '?'));
+                }
                 break;
             }
             continue;
           }
-          else if (parts[parts.length-1] instanceof OmarLiteral) {
-            parts[parts.length-1] = new OmarLiteral(parts[parts.length-1].literal + addLiteral);
-          }
           else {
-            parts.push(new OmarLiteral(addLiteral));
+            parts.push(addLiteral);
           }
           continue;
       }
     }
-    if (parts.parent) throw new Error('mismatched parentheses');
-    switch (parts.length) {
-      case 0: return OmarSequence.EMPTY;
-      case 1: return parts[0];
-      default: return new OmarSequence(parts);
-    }
+    var topLevel = processParts();
+    if (parts) throw new Error('mismatched parentheses');
+    return topLevel;
   }
   
   return Object.assign(omar, {
