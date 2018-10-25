@@ -667,7 +667,7 @@ define(function() {
     if (parts.parent) throw new Error('mismatched parentheses');
     switch (parts.length) {
       case 0: return OmarSequence.EMPTY;
-      case 1: return parts[1];
+      case 1: return parts[0];
       case 2: return new OmarSequence(parts);
     }
   }
