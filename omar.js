@@ -583,9 +583,11 @@ define(function() {
                   continue setLoop;
                 }
                 break;
+              default:
+                i++;
+                break;
             }
             unionList.push(new OmarCharRange(character, rangeEnd));
-            i++;
           }
           for (var i = 0; i < unionList.length; i++) {
             if (typeof unionList[i] !== 'string') continue;
