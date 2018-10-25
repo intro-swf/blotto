@@ -673,7 +673,7 @@ define(function() {
     switch (parts.length) {
       case 0: return OmarSequence.EMPTY;
       case 1: return parts[0];
-      case 2: return new OmarSequence(parts);
+      default: return new OmarSequence(parts);
     }
   }
   
