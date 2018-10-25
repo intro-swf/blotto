@@ -541,6 +541,8 @@ define(function() {
               case 't': return '\t';
               case 'b': return '\b';
               case 'v': return '\v';
+              case 'c':
+                return String.fromCharCode(match[0][1].charCodeAt(0).toUpperCase()-65+1);
               case 'x':
                 return String.fromCharCode(parseInt(match[0].slice(1)));
               default: return match[0];
