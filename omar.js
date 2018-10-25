@@ -541,8 +541,9 @@ define(function() {
               case 't': return '\t';
               case 'b': return '\b';
               case 'v': return '\v';
+              case 'f': return '\f';
               case 'c':
-                return String.fromCharCode(match[0][1].charCodeAt(0).toUpperCase()-65+1);
+                return String.fromCharCode(match[0].charCodeAt(1).toUpperCase()-65+1);
               case 'x':
                 return String.fromCharCode(parseInt(match[0].slice(1)));
               default: return match[0];
@@ -642,7 +643,7 @@ define(function() {
               addLiteral = '\f';
               continue;
             case 'c':
-              addLiteral = String.fromCharCode(match[0][2].toUpperCase().charCodeAt(0) - 65 + 1);
+              addLiteral = String.fromCharCode(match[0].toUpperCase().charCodeAt(2) - 65 + 1);
               break;
             case 'x':
               addLiteral = String.fromCharCode(parseInt(match[0].slice(2), 16));
