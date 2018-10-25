@@ -531,7 +531,7 @@ define(function() {
             var match = PAT_CHARSET_BACKSLASHED.exec(pattern);
             if (!match) throw new Error('invalid escape');
             i = PAT_CHARSET_BACKSLASHED.lastIndex;
-            switch (match[0]) {
+            switch (match[0][0]) {
               case 's': case 'S':
               case 'w': case 'W':
               case 'd': case 'D':
