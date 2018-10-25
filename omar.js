@@ -76,6 +76,11 @@ define(function() {
       },
     },
     type: {value:'sequence'},
+    toString: {
+      value: function() {
+        return Array.prototype.join.call(this, '');
+      },
+    },
   });
   OmarSequence.prototype[Symbol.iterator] = Array.prototype[Symbol.iterator];
   OmarSequence.EMPTY = new OmarSequence([]);
