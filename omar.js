@@ -96,6 +96,7 @@ define(function() {
   OmarSequence.EMPTY = new OmarSequence([]);
   
   function OmarChoice(iter) {
+    this.length = 0;
     for (var obj of iter) {
       if (!(obj instanceof OmarObject)) throw new Error('invalid choice');
       this[this.length++] = obj;
