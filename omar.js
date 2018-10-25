@@ -528,9 +528,9 @@ define(function() {
                 PAT_PART.lastIndex = i+1;
                 break setLoop;
               case '\\':
-                var escape = readEscape();
-                if (typeof escape !== 'string') {
-                  unionList.push(escape);
+                character = readEscape();
+                if (typeof character !== 'string') {
+                  unionList.push(character);
                   continue setLoop;
                 }
                 break;
@@ -540,9 +540,34 @@ define(function() {
                 character = pattern[i++];
                 break;
             }
-            if (pattern[i] !== '-') {
-              unionList.push(new OmarCharSet(pattern[i]));
+            if (pattern[i] !== '-' || pattern[i+1] === ']') {
+              unionList.push(character);
               continue setLoop;
+            }
+            var rangeEnd;
+            switch (rangeEnd = pattern[++i]) {
+              case undefined:
+                throw new Error('unterminated set');
+              case '\\':
+                rangeEnd = readEscape();
+                if (typeof rangeEnd !== 'string') {
+                  unionList.push(character, '-', rangeEnd);
+                  continue setLoop;
+                }
+                break;
+            }
+            unionList.push(new OmarCharRange(character, rangeEnd));
+            i++;
+          }
+          for (var i = 0; i < unionList.length; i++) {
+            if (typeof unionList[i] !== 'string') continue;
+            var j = i;
+            do { j++; } while (typeof unionList[j] === 'string');
+            if (j === i+1) {
+              unionList[i] = new OmarCharSet(unionList[i]);
+            }
+            else {
+              unionList.splice(i, 0, new OmarCharSet(unionList.splice(i, j-i).join('')));
             }
           }
           var set = unionList.length === 1 ? unionList[0] : new OmarCharSetUnion(unionList);
