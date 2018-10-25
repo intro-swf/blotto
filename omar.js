@@ -545,7 +545,7 @@ define(function() {
               case 'c':
                 return String.fromCharCode(match[0].toUpperCase().charCodeAt(1)-65+1);
               case 'x':
-                return String.fromCharCode(parseInt(match[0].slice(1)));
+                return String.fromCharCode(parseInt(match[0].slice(1), 16));
               default: return match[0];
             }
           }
