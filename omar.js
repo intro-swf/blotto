@@ -467,14 +467,30 @@ define(function() {
   OmarLook.BEHIND = '<=';
   OmarLook.BEHIND_NEGATED = '<!';
   
-  function OmarBackReference(number) {
+  function OmarBackReference(number, group) {
     this.number = number;
+    this.group = group;
     Object.freeze(this);
   }
   OmarBackReference.prototype = Object.create(OmarObject.prototype, {
     toString: {
       value: function() {
         return '\\'+this.number;
+      },
+    },
+    minLength: {
+      get: function() {
+        return this.group ? this.group.minLength : NaN;
+      },
+    },
+    maxLength: {
+      get: function() {
+        return this.group ? this.group.maxLength : NaN;
+      },
+    },
+    fixedLength: {
+      get: function() {
+        return this.group ? this.group.fixedLength : NaN;
       },
     },
   });
@@ -509,6 +525,7 @@ define(function() {
       throw new Error('pattern must be a string');
     }
     var parts = [];
+    var groupCaptures = [null];
     function processParts() {
       if (parts.type === 'choice') {
         var options = parts;
@@ -663,7 +680,9 @@ define(function() {
               parts.push(complete);
               break;
             case 'capture':
-              parts.push(new OmarCapture(complete));
+              var capture = new OmarCapture(complete);
+              parts.push(capture);
+              groupCaptures.push(capture);
               break;
             case 'ahead':
               parts.push(new OmarLook(OmarLook.AHEAD, complete));
@@ -800,7 +819,11 @@ define(function() {
             case '1': case '2': case '3': case '4':
             case '5': case '6': case '7': case '8':
             case '9':
-              parts.push(new OmarBackReference(+match[0].slice(1)));
+              var group_i = +match[0].slice(1);
+              if (group_i > groupCaptures.length) {
+                throw new Error('invalid backreference');
+              }
+              parts.push(new OmarBackReference(group_i, groupCaptures[i]));
               continue;
             case 'b':
               parts.push(OmarCheck.WORD_BOUNDARY);
