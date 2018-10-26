@@ -487,7 +487,7 @@ define(function() {
   /* count modifiers - match[2] min, match[3] max */
     /(?:[\+\*\?]|\{(\d+)(,\d*)?\})\??/,
   /* group */
-    /\((?:\?[:!=]|(?!\?))?/,
+    /\((?:\?(?::|<?[!=])|(?!\?))?/,
   /* start of a set */
     /\[\^?/,
   /* backslash escape */
