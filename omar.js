@@ -823,7 +823,7 @@ define(function() {
               if (group_i > groupCaptures.length) {
                 throw new Error('invalid backreference');
               }
-              parts.push(new OmarBackReference(group_i, groupCaptures[i]));
+              parts.push(new OmarBackReference(group_i, groupCaptures[group_i]));
               continue;
             case 'b':
               parts.push(OmarCheck.WORD_BOUNDARY);
