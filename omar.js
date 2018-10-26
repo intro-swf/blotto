@@ -820,7 +820,7 @@ define(function() {
             case '5': case '6': case '7': case '8':
             case '9':
               var group_i = +match[0].slice(1);
-              if (group_i > groupCaptures.length) {
+              if (group_i >= groupCaptures.length) {
                 throw new Error('invalid backreference');
               }
               parts.push(new OmarBackReference(group_i, groupCaptures[group_i]));
