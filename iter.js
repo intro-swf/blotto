@@ -274,8 +274,8 @@ define(function(){
         next: async function() {
           const step = asyncIter.next();
           return step.done ? step : {done:false, value:mapFunc(step.value)};
-        };
-      }
+        },
+      };
       v[_ASYNCITER] = v;
       return v;
     }
