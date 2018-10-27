@@ -410,7 +410,8 @@ define(function(){
     pipedIterable[_TYPESPECIFIED] = true;
     const symbol = (_ITER in pipedIterable) ? _ITER
                   : (_ASYNCITER in pipedIterable) ? _ASYNCITER
-                  : (throw new Error('invalid iterable'));
+                  : null;
+    if (!symbol) throw new Error('invalid iterable');
     pipedIterable[_ASYNCITER] = function() {
       var pipedIterator = pipedIterable[symbol]();
       return {
