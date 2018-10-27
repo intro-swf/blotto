@@ -865,7 +865,7 @@ define(function() {
               }
               break;
             default:
-              addLiteral = new OmarLiteral(match[0][1]);
+              addLiteral = match[0][1];
               break;
           }
           if (PAT_REP.test(pattern[PAT_PART.lastIndex])) {
