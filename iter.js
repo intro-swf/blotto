@@ -296,8 +296,8 @@ define(function(){
             const step = await asyncIter.next();
             if (step.done || filterFunc(step.value)) return value;
           }
-        };
-      }
+        },
+      };
       v[_ASYNCITER] = v;
       return v;
     }
